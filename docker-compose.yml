@@ -1,0 +1,65 @@
+version: "2"
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: App.Dockerfile
+    working_dir: /var/www/html
+    volumes:
+      - "./:/var/www/html"
+      - php_dependencies:/var/www/html/vendor
+      - ./php/php.ini:/usr/local/etc/php/conf.d/php.ini
+      - npm_dependencies:/var/www/html/node_modules
+    ports:
+      - "9000:9000"
+    links:
+      - mysql
+    environment:
+      - MYSQL_USER=root
+      - MYSQL_PASS=123456
+    container_name: na-php-cont
+  
+  nginx:
+    image: nginx:1.13
+    volumes:
+      - "./:/var/www/html"
+      - "./nginx/nginx.conf:/etc/nginx/conf.d/default.conf"
+    ports:
+      - "80:80"
+    links:
+      - app
+    container_name: na-nginx-cont
+
+  mysql:
+    image: mysql:5.7.20
+    volumes:
+      - "db_data:/var/lib/mysql"
+      - "./mysql/initial_data:/docker-entrypoint-initdb.d"
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=laravel
+    container_name: na-mysql-cont
+  
+  phpmyadmin:
+    depends_on:
+      - mysql
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - '8080:80'
+    volumes:
+      - ./php/php.ini:/usr/local/etc/php/php.ini
+    environment:
+      - PMA_HOST=mysql
+      - MYSQL_ROOT_PASSWORD=123456 
+    container_name: na-phpmyadmin-cont
+
+volumes:
+  db_data:
+    driver: local
+  php_dependencies:
+    driver: local
+  npm_dependencies:
+    driver: local
